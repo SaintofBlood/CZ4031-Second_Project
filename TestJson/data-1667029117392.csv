@@ -1,0 +1,6 @@
+"QUERY PLAN"
+"Hash Join  (cost=10345.00..108717.61 rows=1500000 width=268)"
+"  Hash Cond: (o.o_custkey = c.c_custkey)"
+"  ->  Seq Scan on orders o  (cost=0.00..41259.00 rows=1500000 width=108)"
+"  ->  Hash  (cost=5100.00..5100.00 rows=150000 width=160)"
+"        ->  Seq Scan on customer c  (cost=0.00..5100.00 rows=150000 width=160)"
