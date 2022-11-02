@@ -2,5 +2,6 @@
 pycache/
 venv/
 CSV/
-**/.DS_Store
+.DS_Store
 CZ4031-env/
+__pycache__/
