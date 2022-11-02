@@ -45,7 +45,8 @@ class App(object):
 
     def get_tree(self, json_obj):
         head = parse_json(json_obj)
-        return generate_tree("", head)
+        return generate_blockdiag(head)
+        # return generate_tree("", head)
 
     def get_difference(self, json_object_A, json_object_B):
         diff = get_diff(json_object_A, json_object_B)

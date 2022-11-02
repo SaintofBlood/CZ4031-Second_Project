@@ -398,17 +398,37 @@ def generate_tree(tree, node, _prefix="", _last=True):
         tree = tree + generate_tree(tree, child, _prefix, _last)
     return tree
 
-# def generate_blockdiag(tree, node, _prefix="", _last=True):
-#     blockdiag
-#     {
-#         // Set
-#         labels
-#         to
-#         nodes.
-#         B[label = "foo"];
-#         C[label = "bar"];
-#         A -> B -> C;
-#     }
+
+alpha = 1
+blocks = []
+edges = []
+
+
+def generate_blockdiag_content(node_letter, node):
+    global alpha, blocks, edges
+
+    for child in node.children:
+        child_letter = chr(ord('A') + alpha)
+        alpha += 1
+        blocks.append(f'{child_letter}[label="{child.node_type}"];')
+        edges.append(f'{node_letter} -> {child_letter}[dir=none];')
+        generate_blockdiag_content(child_letter, child)
+
+    return
+
+
+def generate_blockdiag(node):
+    global alpha, blocks, edges
+    blocks.append(f'A[label="{node.node_type}"];')
+    generate_blockdiag_content('A', node)
+    blocks_string = "\n".join(blocks)
+    edges_string = "\n".join(edges)
+    text = f"blockdiag {{\n{blocks_string}\n{edges_string}\n}}"
+    alpha = 1
+    blocks = []
+    edges = []
+    return text
+
 
 def generate_why(node_a, node_b, num):
     text = ""
