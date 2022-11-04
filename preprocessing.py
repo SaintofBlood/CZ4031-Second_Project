@@ -48,11 +48,12 @@ def check_for_join(original_plan):
    q1.put(original_plan)
    while not q1.empty():
       current_plan = q1.get()
-      if "Join" in current_plan["Node Type"]:
-         return True
-      else:
-         for element in current_plan["Plans"]:
-                  q1.put(element)
+      if current_plan.get('Plan') is not None: 
+         if "Join" in current_plan["Node Type"]:
+            return True
+         else:
+            for element in current_plan["Plans"]:
+                     q1.put(element)
    
    return False
 
@@ -241,10 +242,12 @@ if __name__ == "__main__":
       print("Connected!")
    except:
       print("Failed to connect to DB!")
+      
    #Creating a cursor object using the cursor() method
    cursor = conn.cursor()
    # query = " select c_custkey, count(o_orderkey) from customer left outer join orders on c_custkey = o_custkey and o_comment not like '%pending%packages%' group by c_custkey;"
    query = "select l_orderkey, sum(l_extendedprice * (1 - l_discount)) as revenue, o_orderdate, o_shippriority from customer, orders, lineitem where c_mktsegment = 'HOUSEHOLD' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < date '1995-03-21' and l_shipdate > date '1995-03-21' group by l_orderkey, o_orderdate, o_shippriority order by revenue desc, o_orderdate limit 10; "
+   # query = "select * from region;"
    result = execute_originalquery(cursor,query)
    # if no join in QEP, shrink off and on config list
    if check_for_join(result): 
