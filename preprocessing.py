@@ -219,10 +219,16 @@ def generate_aqp(original_plan,cursor,query,conn,have_join):
    # add original plan to list
    plans_list.append(original_plan)
    # print(plans_list)
-   query = "EXPLAIN (ANALYSE,FORMAT JSON) " + query
+   query = "EXPLAIN (FORMAT JSON) " + query
    # Iterate to off configs
    plans_list = iterating_alternate_config_list(plans_list,original_plan,cursor,query,conn,off_config,on_config, have_join)
    return plans_list
+
+def repackage_output(plans_list):
+   new_plan_list=[]
+   for element in plans_list:
+      new_plan_list.append(element[0][0][0])
+   return new_plan_list
 
 
 if __name__ == "__main__":
@@ -244,6 +250,11 @@ if __name__ == "__main__":
    if check_for_join(result): 
       plans_list = generate_aqp(result,cursor,query,conn,True)
    else: plans_list = generate_aqp(result,cursor,query,conn,False)
+   # For checking
+   # for element in plans_list:
+   #    print(element)
+   #    print("-----------------------------------")
+   plans_list = repackage_output(plans_list)
    # For checking
    for element in plans_list:
       print(element)
