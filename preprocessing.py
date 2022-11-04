@@ -63,66 +63,120 @@ def iterating_alternate_config_list(plans_list,original_plan,cursor,query,conn,o
    if have_join:
       #Full Merge Join
       plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Nested Loop", "Hash Join"])
-      if(plan != "error" and not compare_plans(original_plan,plan)):
-         print("plan added")
-         plans_list.append(plan)
+      if(plan != "error"):
+         skip = False
+         for element in plans_list:
+            if compare_plans(element,plan):
+               skip=True
+               break
+         if not skip:
+            print("plan added")
+            plans_list.append(plan)
          
       #Full hash join
       plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ['Nested Loop', "Merge Join"])
-      if(plan != "error" and not compare_plans(original_plan,plan)):
-         print("plan added")
-         plans_list.append(plan)
+      if(plan != "error"):
+         skip = False
+         for element in plans_list:
+            if compare_plans(element,plan):
+               skip=True
+               break
+         if not skip:
+            print("plan added")
+            plans_list.append(plan)
 
       #Full nested loop join
       plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ['Merge Join', "Hash Join"])
-      if(plan != "error" and not compare_plans(original_plan,plan)):
-         print("plan added")
-         plans_list.append(plan)
+      if(plan != "error"):
+         skip = False
+         for element in plans_list:
+            if compare_plans(element,plan):
+               skip=True
+               break
+         if not skip:
+            print("plan added")
+            plans_list.append(plan)
 
    #Checking for AEP for Scans
    #Seq scan 
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Index Scan", "Bitmap Scan", "Index Only Scan", "Tid Scan"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
-
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)
    # Index Scan
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Seq Scan", "Bitmap Scan", "Index Only Scan", "Tid Scan"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)  
    # Bitmap Scan
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Seq Scan", "Index Scan", "Index Only Scan", "Tid Scan"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
-   
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)  
    # Index Only Scan
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Seq Scan", "Index Scan", "Bitmap Scan", "Tid Scan"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
-
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)
    # Tid Only Scan
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Seq Scan", "Index Scan", "Bitmap Scan", "Index Only Scan"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
-
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)
    # Checking for AEP for Sort
    # Sort
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Sort"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
-
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)
    # Checking for AEP for Others
    # No Hash Agg
    plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Hash Agg"])
-   if(plan != "error" and not compare_plans(original_plan,plan)):
-      print("plan added")
-      plans_list.append(plan)
-
+   if(plan != "error"):
+      skip = False
+      for element in plans_list:
+         if compare_plans(element,plan):
+            skip=True
+            break
+      if not skip:
+         print("plan added")
+         plans_list.append(plan)
    # # No Material
    # plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Material"])
    # if(plan != "error" and not compare_plans(original_plan,plan)):
@@ -246,8 +300,8 @@ if __name__ == "__main__":
    #Creating a cursor object using the cursor() method
    cursor = conn.cursor()
    # query = " select c_custkey, count(o_orderkey) from customer left outer join orders on c_custkey = o_custkey and o_comment not like '%pending%packages%' group by c_custkey;"
-   query = "select l_orderkey, sum(l_extendedprice * (1 - l_discount)) as revenue, o_orderdate, o_shippriority from customer, orders, lineitem where c_mktsegment = 'HOUSEHOLD' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < date '1995-03-21' and l_shipdate > date '1995-03-21' group by l_orderkey, o_orderdate, o_shippriority order by revenue desc, o_orderdate limit 10; "
-   # query = "select * from region;"
+   # query = "select l_orderkey, sum(l_extendedprice * (1 - l_discount)) as revenue, o_orderdate, o_shippriority from customer, orders, lineitem where c_mktsegment = 'HOUSEHOLD' and c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate < date '1995-03-21' and l_shipdate > date '1995-03-21' group by l_orderkey, o_orderdate, o_shippriority order by revenue desc, o_orderdate limit 10; "
+   query = "Select * from orders, customer where c_custkey = o_custkey and c_name = 'Tomasz' ORDER BY c_phone;"
    result = execute_originalquery(cursor,query)
    # if no join in QEP, shrink off and on config list
    if check_for_join(result): 
