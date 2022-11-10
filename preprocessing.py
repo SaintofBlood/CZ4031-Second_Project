@@ -5,7 +5,9 @@ import queue
 
 def execute_originalquery(cursor, query):
     # Executing an MYSQL function using the execute() method
-    cursor.execute("EXPLAIN (FORMAT JSON, ANALYSE) " + query)
+    # Setting configurations that we did not learn before off. 
+    cursor.execute("Set enable_hashagg = off; Set enable_material= off; Set enable_indexonlyscan = off ; Set enable_tidscan = off;")
+    cursor.execute("EXPLAIN (FORMAT JSON) " + query)
     # Fetch a single row using fetchone() method.
     result = cursor.fetchall()
     # print("Results: ", result)
@@ -16,9 +18,6 @@ def execute_originalquery(cursor, query):
 def compare_plans(original_plan, alternate_plan):
     original_plan = original_plan[0][0][0]["Plan"]
     alternate_plan = alternate_plan[0][0][0]["Plan"]
-    # if same cost just abort, dont need to check, confirm same plan
-    if (original_plan["Total Cost"] == alternate_plan["Total Cost"]):
-        return True
     # if not
     q1 = queue.Queue()
     q2 = queue.Queue()
@@ -104,7 +103,7 @@ def iterating_alternate_config_list(plans_list, original_plan, cursor, query, co
     # Checking for AEP for Scans
     # Seq scan
     plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
-                                  ["Index Scan", "Bitmap Scan", "Index Only Scan", "Tid Scan"])
+                                  ["Index Scan", "Bitmap Scan"])
     if (plan != "error"):
         skip = False
         for element in plans_list:
@@ -114,9 +113,10 @@ def iterating_alternate_config_list(plans_list, original_plan, cursor, query, co
         if not skip:
             print("plan added")
             plans_list.append(plan)
+
     # Index Scan
     plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
-                                  ["Seq Scan", "Bitmap Scan", "Index Only Scan", "Tid Scan"])
+                                  ["Seq Scan", "Bitmap Scan"])
     if (plan != "error"):
         skip = False
         for element in plans_list:
@@ -126,9 +126,10 @@ def iterating_alternate_config_list(plans_list, original_plan, cursor, query, co
         if not skip:
             print("plan added")
             plans_list.append(plan)
-            # Bitmap Scan
+
+    # Bitmap Scan
     plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
-                                  ["Seq Scan", "Index Scan", "Index Only Scan", "Tid Scan"])
+                                  ["Seq Scan", "Index Scan"]) # "Index Only Scan", "Tid Scan"
     if (plan != "error"):
         skip = False
         for element in plans_list:
@@ -138,30 +139,32 @@ def iterating_alternate_config_list(plans_list, original_plan, cursor, query, co
         if not skip:
             print("plan added")
             plans_list.append(plan)
-            # Index Only Scan
-    plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
-                                  ["Seq Scan", "Index Scan", "Bitmap Scan", "Tid Scan"])
-    if (plan != "error"):
-        skip = False
-        for element in plans_list:
-            if compare_plans(element, plan):
-                skip = True
-                break
-        if not skip:
-            print("plan added")
-            plans_list.append(plan)
-    # Tid Only Scan
-    plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
-                                  ["Seq Scan", "Index Scan", "Bitmap Scan", "Index Only Scan"])
-    if (plan != "error"):
-        skip = False
-        for element in plans_list:
-            if compare_plans(element, plan):
-                skip = True
-                break
-        if not skip:
-            print("plan added")
-            plans_list.append(plan)
+
+    ## Index Only Scan
+    # plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
+    #                               ["Seq Scan", "Index Scan", "Bitmap Scan", "Tid Scan"])
+    # if (plan != "error"):
+    #     skip = False
+    #     for element in plans_list:
+    #         if compare_plans(element, plan):
+    #             skip = True
+    #             break
+    #     if not skip:
+    #         print("plan added")
+    #         plans_list.append(plan)
+    # # Tid Only Scan
+    # plan = execute_alternatequery(conn, cursor, query, off_config, on_config,
+    #                               ["Seq Scan", "Index Scan", "Bitmap Scan", "Index Only Scan"])
+    # if (plan != "error"):
+    #     skip = False
+    #     for element in plans_list:
+    #         if compare_plans(element, plan):
+    #             skip = True
+    #             break
+    #     if not skip:
+    #         print("plan added")
+    #         plans_list.append(plan)
+
     # Checking for AEP for Sort
     # Sort
     plan = execute_alternatequery(conn, cursor, query, off_config, on_config, ["Sort"])
@@ -175,17 +178,17 @@ def iterating_alternate_config_list(plans_list, original_plan, cursor, query, co
             print("plan added")
             plans_list.append(plan)
     # Checking for AEP for Others
-    # No Hash Agg
-    plan = execute_alternatequery(conn, cursor, query, off_config, on_config, ["Hash Agg"])
-    if (plan != "error"):
-        skip = False
-        for element in plans_list:
-            if compare_plans(element, plan):
-                skip = True
-                break
-        if not skip:
-            print("plan added")
-            plans_list.append(plan)
+    # # No Hash Agg
+    # plan = execute_alternatequery(conn, cursor, query, off_config, on_config, ["Hash Agg"])
+    # if (plan != "error"):
+    #     skip = False
+    #     for element in plans_list:
+    #         if compare_plans(element, plan):
+    #             skip = True
+    #             break
+    #     if not skip:
+    #         print("plan added")
+    #         plans_list.append(plan)
     # # No Material
     # plan = execute_alternatequery(conn,cursor,query,off_config, on_config, ["Material"])
     # if(plan != "error" and not compare_plans(original_plan,plan)):
@@ -197,6 +200,8 @@ def execute_alternatequery(conn, cursor, query, off_config, on_config, off=[]):
     try:
         # 100s timeout
         cursor.execute("set statement_timeout = 100000")
+        # Setting configurations that we did not learn before off ensure they do not appear in our AQPs.
+        cursor.execute("Set enable_hashagg = off; Set enable_material= off; Set enable_indexonlyscan = off ; Set enable_tidscan = off;  ")
         # Setting off for alternate query plans
         for condition in off:
             cursor.execute(off_config[condition])
@@ -236,12 +241,8 @@ def generate_aqp(original_plan, cursor, query, conn, have_join):
             "Seq Scan": "set enable_seqscan=off",
             "Index Scan": "set enable_indexscan=off",
             "Bitmap Scan": "set enable_bitmapscan=off",
-            "Index Only Scan": "set enable_indexonlyscan=off",
-            "Tid Scan": "set enable_tidscan=off",
             # Sort
             "Sort": "set enable_sort=off",
-            # Others
-            "Hash Agg": "set enable_hashagg=off",
         }
         on_config = {
             # Joins
@@ -252,12 +253,8 @@ def generate_aqp(original_plan, cursor, query, conn, have_join):
             "Seq Scan": "set enable_seqscan=on",
             "Index Scan": "set enable_indexscan=on",
             "Bitmap Scan": "set enable_bitmapscan=on",
-            "Index Only Scan": "set enable_indexonlyscan=on",
-            "Tid Scan": "set enable_tidscan=on",
             # Sort
             "Sort": "set enable_sort=on",
-            # Others
-            "Hash Agg": "set enable_hashagg=on",
         }
 
     # Else shrink list
@@ -267,35 +264,43 @@ def generate_aqp(original_plan, cursor, query, conn, have_join):
             "Seq Scan": "set enable_seqscan=off",
             "Index Scan": "set enable_indexscan=off",
             "Bitmap Scan": "set enable_bitmapscan=off",
-            "Index Only Scan": "set enable_indexonlyscan=off",
-            "Tid Scan": "set enable_tidscan=off",
             # Sort
             "Sort": "set enable_sort=off",
-            # Others
-            "Hash Agg": "set enable_hashagg=off",
         }
         on_config = {
             # Scans
             "Seq Scan": "set enable_seqscan=on",
             "Index Scan": "set enable_indexscan=on",
             "Bitmap Scan": "set enable_bitmapscan=on",
-            "Index Only Scan": "set enable_indexonlyscan=on",
-            "Tid Scan": "set enable_tidscan=on",
             # Sort
             "Sort": "set enable_sort=on",
-            # Others
-            "Hash Agg": "set enable_hashagg=on",
         }
 
     # add original plan to list
     plans_list.append(original_plan)
     # print(plans_list)
-    query = "EXPLAIN (FORMAT JSON, ANALYSE) " + query
+    query = "EXPLAIN (FORMAT JSON) " + query
     # Iterate to off configs
     plans_list = iterating_alternate_config_list(plans_list, original_plan, cursor, query, conn, off_config, on_config,
                                                  have_join)
+    plans_list = find_plan_cost(plans_list)
     return plans_list
 
+def find_plan_cost(plans_list):
+    for plan in plans_list:
+        q1 = queue.Queue()
+        q1.put(plan[0][0][0]["Plan"])
+        plan_cost = 0
+        while not q1.empty():
+            current_plan = q1.get()
+            plan_cost+= current_plan["Total Cost"]
+            if "Plans" in current_plan:
+                for element in current_plan["Plans"]:
+                    q1.put(element)
+        
+        # Add additional field for plan_cost
+        plan[0][0][0]["Plan Cost"] = plan_cost
+    return plans_list
 
 def repackage_output(plans_list):
     new_plan_list = []
