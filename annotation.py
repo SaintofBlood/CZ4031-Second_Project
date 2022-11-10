@@ -444,7 +444,7 @@ def generate_why(node_a, node_b, num):
         if node_a.index_cond != node_b.table_filter and int(node_a.actual_rows) < int(node_b.actual_rows):
             text += "This may be due to the selection predicates change from " + (
                 node_a.index_cond if node_a.index_cond is not None else "None ") + " to " + (
-                        node_b.table_filter if node_b.table_filter is not None else "None ") + ". "
+                        node_b.table_filter if node_b.table_filter is not None else "None ") + ". For larger number of rows, a sequential scan is faster than an index scan. Sequential I/O may also cost less than the Random I/O in an index scan"
 
     elif node_b.node_type == "Index Scan" and node_a.node_type == "Seq Scan":
         text = "Reason for Difference " + str(num) + ": "
@@ -459,7 +459,7 @@ def generate_why(node_a, node_b, num):
         if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
             text += "This may be due to the selection predicate changes from " + (
                 node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
-                        node_b.index_cond if node_b.index_cond is not None else "None") + ". "
+                        node_b.index_cond if node_b.index_cond is not None else "None") + ". For smaller number of rows, a index scan is faster than an sequential scan. Random I/O may also cost less than the Sequential I/O in an sequential scan"
 
     elif node_a.node_type and node_b.node_type in ['Merge Join', "Hash Join", "Nested Loop"]:
         text = "Reason for Difference " + str(num) + ": "
@@ -470,13 +470,13 @@ def generate_why(node_a, node_b, num):
                     node_b.actual_rows) + ", "
             if "=" in node_b.node_type:
                 text += "The join condition uses an equality operator. "
-            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . "
+            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . Merge join is faster than Nested Loop join"
 
         if node_a.node_type == "Nested Loop" and node_b.node_type == "Hash Join":
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
             if int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". Hash join is better for joining of larger tables"
+                    node_b.actual_rows) + ". Hash join is better for joining of larger tables and when join attributes are not sorted. "
             if "=" in node_b.node_type:
                 text += "The join condition uses an equality operator. "
 
@@ -484,11 +484,11 @@ def generate_why(node_a, node_b, num):
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". "
+                    node_b.actual_rows) + ". . Nested loop is a one-pass algorithm and works better on tables with lesser number of rows that can fit in the main memory"
             elif int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
-                text += node_b.node_type + " joins are used  if the join condition does not use the equality operator"
+                text += node_b.node_type + " joins are used if the join condition does not use the equality operator"
 
         if node_a.node_type == "Merge Join" and node_b.node_type == "Hash Join":
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". "
@@ -498,13 +498,13 @@ def generate_why(node_a, node_b, num):
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "The actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
-            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . "
+            text += "The both side of the Join operator of P2 cannot be sorted on the join condition efficiently. "
 
         if node_a.node_type == "Hash Join" and node_b.node_type == "Nested Loop":
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". "
+                    node_b.actual_rows) + ". Hash joins generally have a higher cost to retrieve the first row than nested-loop joins do as Postgres must build the hash table before it retrieves any rows. "
             elif int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
@@ -532,11 +532,11 @@ def check_children(nodeA, nodeB, difference, reasons):
     global num
     childrenA = nodeA.children
     childrenB = nodeB.children
-    children_no_A = len(childrenA)
-    children_no_B = len(childrenB)
+    numberOfChildrenA = len(childrenA)
+    numberOfChildrenB = len(childrenB)
 
-    if nodeA.node_type == nodeB.node_type and children_no_A == children_no_B:
-        if children_no_A != 0:
+    if nodeA.node_type == nodeB.node_type and numberOfChildrenA == numberOfChildrenB:
+        if numberOfChildrenA != 0:
             for i in range(len(childrenA)):
                 check_children(childrenA[i], childrenB[i], difference, reasons)
 
@@ -575,10 +575,10 @@ def check_children(nodeA, nodeB, difference, reasons):
             reasons.append(reason)
             num += 1
 
-        if children_no_A == children_no_B:
-            if children_no_A == 1:
+        if numberOfChildrenA == numberOfChildrenB:
+            if numberOfChildrenA == 1:
                 check_children(childrenA[0], childrenB[0], difference, reasons)
-            if children_no_A == 2:
+            if numberOfChildrenA == 2:
                 check_children(childrenA[0], childrenB[0], difference, reasons)
                 check_children(childrenA[1], childrenB[1], difference, reasons)
 
