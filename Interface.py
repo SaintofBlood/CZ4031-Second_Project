@@ -382,11 +382,11 @@ class UI_MainWindow(object):
         self.label_7.setText(_translate("MainWindow", "Ip Address:"))
         self.ip_add.setText(_translate("MainWindow", "localhost"))
         self.label.setText(_translate("MainWindow", "Username:"))
-        self.username.setText(_translate("MainWindow", "type username...."))
+        #self.username.setText(_translate("MainWindow", "type username...."))
         self.label_3.setText(_translate("MainWindow", "Password:"))
-        self.passwd.setText(_translate("MainWindow", "type password...."))
+        #self.passwd.setText(_translate("MainWindow", "type password...."))
         self.label_4.setText(_translate("MainWindow", "Database Name:"))
-        self.db_name.setText(_translate("MainWindow", "type database name...."))
+        #self.db_name.setText(_translate("MainWindow", "type database name...."))
         self.label_8.setText(_translate("MainWindow", "Connection Status:"))
         self.status_d.setText(_translate("MainWindow",
                                          "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
@@ -406,7 +406,11 @@ class UI_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "Select Query:"))
         self.LoadQuery.setText(_translate("MainWindow", "Load Query"))
         self.sql_btn.setText(_translate("MainWindow", "Execute SQL Query"))
-
+        
+         self.username.setPlaceholderText("Type username....")
+        self.passwd.setPlaceholderText("Type password....")
+        self.db_name.setPlaceholderText("Type database name....")
+        
         MainWindow.setFixedSize(MainWindow.size())
 
     def setCont(self, MainWindow):
