@@ -140,7 +140,7 @@ def simplify_graph(node):
     for child in node.children:
         new_child = simplify_graph(child)
         new_node.add_children(new_child)
-       # new_node.actual_time -= child.actual_time
+    # new_node.actual_time -= child.actual_time
 
     if node.node_type in ["Result"]:
         return node.children[0]
@@ -376,6 +376,7 @@ def clear_cache():
     cur_table_name = 1
     table_subquery_name_pair = {}
 
+
 # tree_order = []
 def generate_tree(tree, node, _prefix="", _last=True):
     if _last:
@@ -428,7 +429,11 @@ def generate_why(node_a, node_b, num):
     text = ""
     if node_a.node_type == "Index Scan" and node_b.node_type == "Seq Scan":
         text = "Reason for Difference " + str(num) + ": "
-        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to Sequential Scan in P2 on relation " + node_b.relation_name + ". This is because "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + "has now evolved to Sequential Scan " \
+                                                                                  "in P2 on relation " + \
+                node_b.relation_name + ". This is because for larger number of rows, a sequential scan is faster than " \
+                                       "an index scan. Sequential I/O may also cost less than the Random I/O in an " \
+                                       "index scan "
         if node_b.index_name is None:
             text += "P1 uses the index, i.e. " + node_a.index_name + ", for selection while P2 doesn't. "
         if int(node_a.actual_rows) < int(node_b.actual_rows):
@@ -438,11 +443,25 @@ def generate_why(node_a, node_b, num):
         if node_a.index_cond != node_b.table_filter and int(node_a.actual_rows) < int(node_b.actual_rows):
             text += "This may be due to the selection predicates change from " + (
                 node_a.index_cond if node_a.index_cond is not None else "None ") + " to " + (
-                        node_b.table_filter if node_b.table_filter is not None else "None ") + ". For larger number of rows, a sequential scan is faster than an index scan. Sequential I/O may also cost less than the Random I/O in an index scan"
+                        node_b.table_filter if node_b.table_filter is not None else "None ") + ". For larger number " \
+                                                                                               "of rows, a sequential " \
+                                                                                               "scan is faster than " \
+                                                                                               "an index scan. " \
+                                                                                               "Sequential I/O may " \
+                                                                                               "also cost less than " \
+                                                                                               "the Random I/O in an " \
+                                                                                               "index scan "
 
     elif node_b.node_type == "Index Scan" and node_a.node_type == "Seq Scan":
         text = "Reason for Difference " + str(num) + ": "
-        text += "Sequential Scan in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        text += "Sequential Scan in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + \
+                " in P2 on relation " + node_b.relation_name + ". This is because for smaller number of " \
+                                                               "rows, a index scan is " \
+                                                               "faster than an sequential " \
+                                                               "scan. Random I/O may also " \
+                                                               "cost less than the " \
+                                                               "Sequential I/O in an " \
+                                                               "sequential scan "
         if node_a.index_name is None:
             text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
         elif node_a.index_name is not None:
@@ -453,7 +472,13 @@ def generate_why(node_a, node_b, num):
         if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
             text += "This may be due to the selection predicate changes from " + (
                 node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
-                        node_b.index_cond if node_b.index_cond is not None else "None") + ". For smaller number of rows, a index scan is faster than an sequential scan. Random I/O may also cost less than the Sequential I/O in an sequential scan"
+                        node_b.index_cond if node_b.index_cond is not None else "None") + ". For smaller number of " \
+                                                                                          "rows, a index scan is " \
+                                                                                          "faster than an sequential " \
+                                                                                          "scan. Random I/O may also " \
+                                                                                          "cost less than the " \
+                                                                                          "Sequential I/O in an " \
+                                                                                          "sequential scan "
 
     elif node_a.node_type == "Seq Scan" and node_b.node_type == "Bitmap Heap Scan":
         text = "Reason for Difference " + str(num) + ": "
@@ -481,7 +506,7 @@ def generate_why(node_a, node_b, num):
 
     elif node_b.node_type == "Seq Scan" and node_a.node_type == "Bitmap Heap Scan":
         text = "Reason for Difference " + str(num) + ": "
-        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because PostgresSQL used sequential scan because the DBMS estimates it is going to grab the vast majority of the table "
         if node_a.index_name is None:
             text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
         elif node_a.index_name is not None:
@@ -746,7 +771,7 @@ def check_children(nodeA, nodeB, difference, reasons):
         elif 'Gather' in nodeB.node_type:
             check_children(nodeA, childrenB[0], difference, reasons)
         else:
-            if nodeA.description is not None and nodeB.description is not None :
+            if nodeA.description is not None and nodeB.description is not None:
                 text = 'Difference ' + str(num) + \
                        ' : ' + nodeA.description + ' has been changed to ' + nodeB.description
                 text = modify_text(text)
@@ -778,7 +803,8 @@ def get_diff(json_obj_A, json_obj_B):
     num = 1
     difference = []
     reasons = []
-    difference_text = "The cost of Plan A is " + str(json_obj_A['Plan Cost']) + " and the cost of Plan B is " + str(json_obj_B['Plan Cost'])
+    difference_text = "The cost of Plan A is " + str(json_obj_A['Plan Cost']) + " and the cost of Plan B is " + str(
+        json_obj_B['Plan Cost'])
     reasons_text = "The difference in costs is due to the aforementioned differences"
     difference.append(difference_text)
     reasons.append(reasons_text)
