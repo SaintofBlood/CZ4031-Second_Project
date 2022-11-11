@@ -662,17 +662,19 @@ def generate_why(node_a, node_b, num):
     elif node_a.node_type and node_b.node_type in ['Merge Join', "Hash Join", "Nested Loop"]:
         text = "Reason for Difference " + str(num) + ": "
         if node_a.node_type == "Nested Loop" and node_b.node_type == "Merge Join":
-            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
+            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because both side of the Join operator of P2 can be sorted on the join condition efficiently . Merge " \
+                                                                                                                    "join is faster than Nested Loop join "
             if int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ", "
             if "=" in node_b.node_type:
                 text += "The join condition uses an equality operator. "
-            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . Merge " \
-                    "join is faster than Nested Loop join "
+            # text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . Merge " \
+            #         "join is faster than Nested Loop join "
 
         if node_a.node_type == "Nested Loop" and node_b.node_type == "Hash Join":
-            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
+            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because Hash join is better for joining of larger tables and when join " \
+                                                                                                                    "attributes are not sorted. "
             if int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". Hash join is better for joining of larger tables and when join " \
@@ -681,10 +683,10 @@ def generate_why(node_a, node_b, num):
                 text += "The join condition uses an equality operator. "
 
         if node_a.node_type == "Merge Join" and node_b.node_type == "Nested Loop":
-            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
+            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because Nested loop is a one-pass algorithm and works better on tables with lesser number of rows that can fit in the main memory. "
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". . Nested loop is a one-pass algorithm and works better on tables with lesser number of rows that can fit in the main memory"
+                    node_b.actual_rows) + ". Nested loop is a one-pass algorithm and works better on tables with lesser number of rows that can fit in the main memory"
             elif int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
