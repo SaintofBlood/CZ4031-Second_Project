@@ -407,7 +407,7 @@ class UI_MainWindow(object):
         self.LoadQuery.setText(_translate("MainWindow", "Load Query"))
         self.sql_btn.setText(_translate("MainWindow", "Execute SQL Query"))
         
-         self.username.setPlaceholderText("Type username....")
+        self.username.setPlaceholderText("Type username....")
         self.passwd.setPlaceholderText("Type password....")
         self.db_name.setPlaceholderText("Type database name....")
         
