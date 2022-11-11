@@ -457,7 +457,12 @@ def generate_why(node_a, node_b, num):
 
     elif node_a.node_type == "Seq Scan" and node_b.node_type == "Bitmap Heap Scan":
         text = "Reason for Difference " + str(num) + ": "
-        text += "Sequential Scan in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        text += "Sequential Scan in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name \
+                + ". This is because " + \
+                "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                "seeking, so is faster only when it needs a small subset of the rows compared to Sequential Scan " \
+                "when majority of rows are used. "
         if node_a.index_name is not None:
             text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
         elif node_a.index_name is not None:
@@ -467,8 +472,8 @@ def generate_why(node_a, node_b, num):
                 node_b.actual_rows) + ". "
             text += "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
                     "from an index), and is going to fetch only those rows. This will of course have a lot more " \
-                    "seeking, so is faster only when it needs a small subset of the rows compared to seq scan when " \
-                    "majority of rows are used. "
+                    "seeking, so is faster only when it needs a small subset of the rows compared to Sequential Scan " \
+                    "when majority of rows are used. "
         if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
             text += "This may be due to the selection predicate changes from " + (
                 node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
@@ -716,7 +721,7 @@ def check_children(nodeA, nodeB, difference, reasons):
 
     else:
         if nodeA.node_type == 'Hash' or nodeA.node_type == 'Sort':
-            num = 1
+            # num = 1
             text = 'Difference ' + \
                    str(num) + ' : ' + nodeA.children[0].description + \
                    ' has been changed to ' + nodeB.description
@@ -740,14 +745,15 @@ def check_children(nodeA, nodeB, difference, reasons):
 
         elif 'Gather' in nodeB.node_type:
             check_children(nodeA, childrenB[0], difference, reasons)
-        # else:
-        #     text = 'Difference ' + str(num) + \
-        #            ' : ' + nodeA.description + ' has been changed to ' + nodeB.description
-        #     text = modify_text(text)
-        #     difference.append(text)
-        #     reason = generate_why(nodeA, nodeB, num)
-        #     reasons.append(reason)
-        #     num += 1
+        else:
+            if nodeA.description is not None and nodeB.description is not None :
+                text = 'Difference ' + str(num) + \
+                       ' : ' + nodeA.description + ' has been changed to ' + nodeB.description
+                text = modify_text(text)
+                difference.append(text)
+                reason = generate_why(nodeA, nodeB, num)
+                reasons.append(reason)
+            num += 1
 
         if children_no_A == children_no_B:
             if children_no_A == 1:
