@@ -382,11 +382,11 @@ class UI_MainWindow(object):
         self.label_7.setText(_translate("MainWindow", "Ip Address:"))
         self.ip_add.setText(_translate("MainWindow", "localhost"))
         self.label.setText(_translate("MainWindow", "Username:"))
-        self.username.setText(_translate("MainWindow", "postgres"))
+        self.username.setText(_translate("MainWindow", "type username...."))
         self.label_3.setText(_translate("MainWindow", "Password:"))
-        self.passwd.setText(_translate("MainWindow", "admin"))
+        self.passwd.setText(_translate("MainWindow", "type password...."))
         self.label_4.setText(_translate("MainWindow", "Database Name:"))
-        self.db_name.setText(_translate("MainWindow", "TPC_H NEW"))
+        self.db_name.setText(_translate("MainWindow", "type database name...."))
         self.label_8.setText(_translate("MainWindow", "Connection Status:"))
         self.status_d.setText(_translate("MainWindow",
                                          "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
