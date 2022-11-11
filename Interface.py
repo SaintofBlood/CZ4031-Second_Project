@@ -377,7 +377,7 @@ class UI_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "CZ 4031 Proj II"))
         self.groupBox.setTitle(_translate("MainWindow", "SQL Connection"))
         self.label_7.setText(_translate("MainWindow", "Ip Address:"))
         self.ip_add.setText(_translate("MainWindow", "localhost"))
