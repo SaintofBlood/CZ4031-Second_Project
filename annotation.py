@@ -378,7 +378,6 @@ def clear_cache():
 
 # tree_order = []
 def generate_tree(tree, node, _prefix="", _last=True):
-
     if _last:
         tree = "{}`-- {}\n".format(_prefix, node.node_type)
         # listOrder.append(node.node_type)
@@ -439,7 +438,7 @@ def generate_why(node_a, node_b, num):
         if node_a.index_cond != node_b.table_filter and int(node_a.actual_rows) < int(node_b.actual_rows):
             text += "This may be due to the selection predicates change from " + (
                 node_a.index_cond if node_a.index_cond is not None else "None ") + " to " + (
-                        node_b.table_filter if node_b.table_filter is not None else "None ") + ". "
+                        node_b.table_filter if node_b.table_filter is not None else "None ") + ". For larger number of rows, a sequential scan is faster than an index scan. Sequential I/O may also cost less than the Random I/O in an index scan"
 
     elif node_b.node_type == "Index Scan" and node_a.node_type == "Seq Scan":
         text = "Reason for Difference " + str(num) + ": "
@@ -454,7 +453,181 @@ def generate_why(node_a, node_b, num):
         if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
             text += "This may be due to the selection predicate changes from " + (
                 node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
-                        node_b.index_cond if node_b.index_cond is not None else "None") + ". "
+                        node_b.index_cond if node_b.index_cond is not None else "None") + ". For smaller number of rows, a index scan is faster than an sequential scan. Random I/O may also cost less than the Sequential I/O in an sequential scan"
+
+    elif node_a.node_type == "Seq Scan" and node_b.node_type == "Bitmap Heap Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += "Sequential Scan in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is not None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows compared to seq scan when " \
+                    "majority of rows are used. "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+
+    elif node_b.node_type == "Seq Scan" and node_a.node_type == "Bitmap Heap Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) < int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "PostgresSQL used sequential scan because the DBMS estimates it is going to grab the vast majority " \
+                    "of the table "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+            text += "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows compared to seq scan when " \
+                    "majority of rows are used. "
+
+    elif node_a.node_type == "Seq Scan" and node_b.node_type == "Bitmap Index Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += "Sequential Scan in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is not None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "Bitmap index scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows compared to seq scan when " \
+                    "majority of rows are used. "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+
+    elif node_b.node_type == "Seq Scan" and node_a.node_type == "Bitmap Index Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) < int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "PostgresSQL used sequential scan because the DBMS estimates it is going to grab the vast majority " \
+                    "of the table "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+            text += "Bitmap index scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows compared to seq scan when " \
+                    "majority of rows are used. "
+
+    elif node_b.node_type == "Index Scan" and node_a.node_type == "Bitmap Heap Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows. The current number of rows " \
+                    "in the AQP is too little for the bitmap heap scan to be efficient, hence index scan is more " \
+                    "suitable for a smaller number of rows. "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) < int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+            text += "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows. The current number of rows " \
+                    "in the AQP is too little for the bitmap heap scan to be efficient, hence index scan is more " \
+                    "suitable for a smaller number of rows. "
+
+    elif node_a.node_type == "Index Scan" and node_b.node_type == "Bitmap Heap Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "PostgresSQL used sequential scan because the DBMS estimates it is going to grab the vast majority " \
+                    "of the table "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) < int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+            text += "Bitmap heap scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows. The current number of rows " \
+                    "in the AQP is too little for the bitmap heap scan to be efficient, hence index scan is more " \
+                    "suitable for a smaller number of rows. "
+
+    elif node_b.node_type == "Index Scan" and node_a.node_type == "Bitmap Index Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "Bitmap index scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows. The current number of rows " \
+                    "in the AQP is too little for the bitmap heap scan to be efficient, hence index scan is more " \
+                    "suitable for a smaller number of rows. "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) < int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+            text += "Bitmap index scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows. The current number of rows " \
+                    "in the AQP is too little for the bitmap index scan to be efficient, hence index scan is more " \
+                    "suitable for a smaller number of rows. "
+
+    elif node_a.node_type == "Index Scan" and node_b.node_type == "Bitmap Index Scan":
+        text = "Reason for Difference " + str(num) + ": "
+        text += node_a.node_type + " in P1 on relation " + node_a.relation_name + " has now evolved to " + node_b.node_type + " in P2 on relation " + node_b.relation_name + ". This is because "
+        if node_a.index_name is None:
+            text += "P2 uses the index, i.e. " + node_b.index_name + ", for selection while P1 doesn't. "
+        elif node_a.index_name is not None:
+            text += "Both P1 and P2 uses the index, which are respectively " + node_a.index_name + " and " + node_b.index_name + ". "
+        if int(node_a.actual_rows) > int(node_b.actual_rows):
+            text += "and the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
+                node_b.actual_rows) + ". "
+            text += "PostgresSQL used sequential scan because the DBMS estimates it is going to grab the vast majority " \
+                    "of the table "
+        if node_a.table_filter != node_b.index_cond and int(node_a.actual_rows) < int(node_b.actual_rows):
+            text += "This may be due to the selection predicate changes from " + (
+                node_a.table_filter if node_a.table_filter is not None else "None") + " to " + (
+                        node_b.index_cond if node_b.index_cond is not None else "None") + "."
+            text += "Bitmap index scan means that PostgreSQL has found a small subset of rows to fetch (e.g., " \
+                    "from an index), and is going to fetch only those rows. This will of course have a lot more " \
+                    "seeking, so is faster only when it needs a small subset of the rows. The current number of rows " \
+                    "in the AQP is too little for the bitmap index scan to be efficient, hence index scan is more " \
+                    "suitable for a smaller number of rows. "
 
     elif node_a.node_type and node_b.node_type in ['Merge Join', "Hash Join", "Nested Loop"]:
         text = "Reason for Difference " + str(num) + ": "
@@ -465,13 +638,15 @@ def generate_why(node_a, node_b, num):
                     node_b.actual_rows) + ", "
             if "=" in node_b.node_type:
                 text += "The join condition uses an equality operator. "
-            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . "
+            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . Merge " \
+                    "join is faster than Nested Loop join "
 
         if node_a.node_type == "Nested Loop" and node_b.node_type == "Hash Join":
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
             if int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". Hash join is better for joining of larger tables"
+                    node_b.actual_rows) + ". Hash join is better for joining of larger tables and when join " \
+                                          "attributes are not sorted. "
             if "=" in node_b.node_type:
                 text += "The join condition uses an equality operator. "
 
@@ -479,11 +654,11 @@ def generate_why(node_a, node_b, num):
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". "
+                    node_b.actual_rows) + ". . Nested loop is a one-pass algorithm and works better on tables with lesser number of rows that can fit in the main memory"
             elif int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
-                text += node_b.node_type + " joins are used  if the join condition does not use the equality operator"
+                text += node_b.node_type + " joins are used if the join condition does not use the equality operator"
 
         if node_a.node_type == "Merge Join" and node_b.node_type == "Hash Join":
             text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". "
@@ -493,13 +668,17 @@ def generate_why(node_a, node_b, num):
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "The actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
-            text += "The both side of the Join operator of P2 can be sorted on the join condition efficiently . "
+            text += "The both side of the Join operator of P2 cannot be sorted on the join condition efficiently. "
 
         if node_a.node_type == "Hash Join" and node_b.node_type == "Nested Loop":
-            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation " + ". This is because "
+            text += node_a.node_type + " in P1 on has now evolved to " + node_b.node_type + " in P2 on relation "
+            text += ". This is because Hash joins generally have a higher cost to retrieve the first row than " \
+                    "nested-loop joins do as Postgres must build the hash table before it " \
+                    "retrieves any rows. "
+
             if int(node_a.actual_rows) > int(node_b.actual_rows):
                 text += "the actual row number decreases from " + str(node_a.actual_rows) + " to " + str(
-                    node_b.actual_rows) + ". "
+                    node_b.actual_rows) + "."
             elif int(node_a.actual_rows) < int(node_b.actual_rows):
                 text += "the actual row number increases from " + str(node_a.actual_rows) + " to " + str(
                     node_b.actual_rows) + ". "
@@ -580,6 +759,8 @@ def check_children(nodeA, nodeB, difference, reasons):
 
 def get_diff(json_obj_A, json_obj_B):
     global num
+    print(json_obj_A)
+    print(json_obj_B)
     head_node_a = parse_json(json_obj_A)
     clear_cache()
     to_text(head_node_a)
