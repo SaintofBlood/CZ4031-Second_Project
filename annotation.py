@@ -537,6 +537,7 @@ def check_children(nodeA, nodeB, difference, reasons):
 
     else:
         if nodeA.node_type == 'Hash' or nodeA.node_type == 'Sort':
+            num = 1
             text = 'Difference ' + \
                    str(num) + ' : ' + nodeA.children[0].description + \
                    ' has been changed to ' + nodeB.description
@@ -560,15 +561,14 @@ def check_children(nodeA, nodeB, difference, reasons):
 
         elif 'Gather' in nodeB.node_type:
             check_children(nodeA, childrenB[0], difference, reasons)
-        else:
-            text = 'Difference ' + \
-                   str(num) + ' : ' + nodeA.description + \
-                   ' has been changed to ' + nodeB.description
-            text = modify_text(text)
-            difference.append(text)
-            reason = generate_why(nodeA, nodeB, num)
-            reasons.append(reason)
-            num += 1
+        # else:
+        #     text = 'Difference ' + str(num) + \
+        #            ' : ' + nodeA.description + ' has been changed to ' + nodeB.description
+        #     text = modify_text(text)
+        #     difference.append(text)
+        #     reason = generate_why(nodeA, nodeB, num)
+        #     reasons.append(reason)
+        #     num += 1
 
         if children_no_A == children_no_B:
             if children_no_A == 1:
@@ -591,6 +591,10 @@ def get_diff(json_obj_A, json_obj_B):
     num = 1
     difference = []
     reasons = []
+    difference_text = "The cost of Plan A is " + str(json_obj_A['Plan Cost']) + " and the cost of Plan B is " + str(json_obj_B['Plan Cost'])
+    reasons_text = "The difference in costs is due to the aforementioned differences"
+    difference.append(difference_text)
+    reasons.append(reasons_text)
     check_children(head_node_a, head_node_b, difference, reasons)
     diff_str = ""
     for i in range(len(reasons)):

@@ -7,7 +7,7 @@ def execute_originalquery(cursor, query):
     # Executing an MYSQL function using the execute() method
     # Setting configurations that we did not learn before off. 
     cursor.execute("Set enable_hashagg = off; Set enable_material= off; Set enable_indexonlyscan = off ; Set enable_tidscan = off;")
-    cursor.execute("EXPLAIN (FORMAT JSON) " + query)
+    cursor.execute("EXPLAIN (FORMAT JSON, ANALYZE) " + query)
     # Fetch a single row using fetchone() method.
     result = cursor.fetchall()
     # print("Results: ", result)
@@ -279,7 +279,7 @@ def generate_aqp(original_plan, cursor, query, conn, have_join):
     # add original plan to list
     plans_list.append(original_plan)
     # print(plans_list)
-    query = "EXPLAIN (FORMAT JSON) " + query
+    query = "EXPLAIN (FORMAT JSON, ANALYZE) " + query
     # Iterate to off configs
     plans_list = iterating_alternate_config_list(plans_list, original_plan, cursor, query, conn, off_config, on_config,
                                                  have_join)
