@@ -401,7 +401,7 @@ class UI_MainWindow(object):
                                            "p, li { white-space: pre-wrap; }\n"
                                            "</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
                                            "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">SELECT * FROM region</p></body></html>"))
-        self.label_5.setText(_translate("MainWindow", "Compare QEP with other AEP: "))
+        self.label_5.setText(_translate("MainWindow", "Compare QEP with other AQP: "))
         self.CmpQuery.setText(_translate("MainWindow", "Compare"))
         self.label_2.setText(_translate("MainWindow", "Select Query:"))
         self.LoadQuery.setText(_translate("MainWindow", "Load Query"))
@@ -641,7 +641,7 @@ class UI_MainWindow(object):
             TEXT = QTextEdit()
             TEXT.setReadOnly(True)
             TEXT.setText(result)
-            BUTTON = QPushButton("Display Phisical Query Plan")
+            BUTTON = QPushButton("Display Physical Query Plan")
             BUTTON.clicked.connect(partial(self.displayDiagram, x))
             vbox.addWidget(TEXT)
             self.AddToTab(tab1, groupbox)
@@ -650,10 +650,10 @@ class UI_MainWindow(object):
             if x == 0:
                 self.tabWidget.addTab(tab1, "QEP")
             else:
-                self.tabWidget.addTab(tab1, "AEP " + str(x))
+                self.tabWidget.addTab(tab1, "AQP " + str(x))
 
             if x > 0:
-                self.aepList.addItem("AEP " + str(x), self.testList[x])
+                self.aepList.addItem("AQP " + str(x), self.testList[x])
 
 
             x += 1
