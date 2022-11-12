@@ -16,7 +16,7 @@ Before running this application, you need to satisfy the following dependencies
 
 ### Dependencies
 
-This application was built with Python v3.6.5 and uses the dependencies specified in `requirements.txt`. Use the command `pip install -r requirements.txt` to install the latest version of the listed packages.
+This application was built with Python v3.8.5 and uses the dependencies specified in `requirements.txt`. Use the command `pip install -r requirements.txt` to install the latest version of the listed packages.
 
 **Note: We use tkinter module to build the GUI and this module should be a built in library. Therefore, no need to install it manually**
 
