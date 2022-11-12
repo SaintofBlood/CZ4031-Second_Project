@@ -451,7 +451,7 @@ class UI_MainWindow(object):
 
         print(self.plans_list[self.aepList.currentIndex()])
 
-        string = (get_diff(self.plans_list[0], self.plans_list[self.aepList.currentIndex()]))
+        string = (get_diff(self.plans_list[0], self.plans_list[self.aepList.currentIndex() + 1]))
 
         print(string)
 
